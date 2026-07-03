@@ -1,0 +1,150 @@
+# TagAI - Ana Konfigürasyon Dosyası
+
+project:
+  name: "TagAI"
+  version: "0.1.0"
+  description: "Açık kaynak Türkçe yapay zeka"
+
+# Google Drive Ayarları
+storage:
+  max_size_gb: 15  # Maksimum Google Drive kullanımı
+  checkpoint_limit: 2  # Saklanacak maksimum checkpoint sayısı
+  keep_best: true  # En iyi modeli ayrıca sakla
+  auto_cleanup: true  # Otomatik temizlik
+  min_free_space_gb: 2  # Minimum boş alan (GB)
+  compression: true  # Checkpoint sıkıştırma
+
+# Model Ayarları
+model:
+  # Base model seçenekleri (birini seç)
+  base_model_options:
+    - "unsloth/mistral-7b-v0.2-bnb-4bit"
+    - "unsloth/llama-2-7b-bnb-4bit"
+    - "unsloth/Qwen2-7B-bnb-4bit"
+
+  # Varsayılan model
+  base_model: "unsloth/mistral-7b-v0.2-bnb-4bit"
+
+  # Tokenizer
+  max_seq_length: 2048
+
+# Eğitim Ayarları
+training:
+  # QLoRA/LoRA parametreleri
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+  # Eğitim hiperparametreleri
+  num_train_epochs: 3
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 0.0002
+  weight_decay: 0.01
+  warmup_steps: 100
+  max_grad_norm: 1.0
+
+  # Optimizer
+  optimizer: "adamw_8bit"
+  lr_scheduler_type: "cosine"
+
+  # Precision
+  bf16: true  # A100/L4 için
+  fp16: false  # T4 için bu true olmalı
+
+  # Memory optimization
+  gradient_checkpointing: true
+  optim: "paged_adamw_8bit"
+
+  # Logging
+  logging_steps: 10
+  save_steps: 500
+  eval_steps: 500
+
+  # Checkpoint
+  save_total_limit: 2
+  load_best_model_at_end: true
+  metric_for_best_model: "loss"
+
+# Veri Seti Ayarları
+dataset:
+  train_split: 0.95
+  eval_split: 0.05
+  shuffle: true
+  seed: 42
+
+  # Veri kategorileri ve hedef dağılımı
+  categories:
+    general_conversation: 0.15  # Genel konuşma
+    technical_qa: 0.20  # Teknik soru-cevap
+    coding: 0.25  # Kod yazma
+    reasoning: 0.10  # Mantık yürütme
+    knowledge: 0.15  # Bilgi (matematik, fen, tarih vb.)
+    text_processing: 0.15  # Metin işleme (özet, düzeltme vb.)
+
+  # Minimum örnek sayıları (kategori başına)
+  min_samples_per_category: 1000
+
+  # Veri kalite filtreleri
+  filters:
+    min_length: 10  # Minimum karakter sayısı
+    max_length: 4096  # Maksimum karakter sayısı
+    remove_duplicates: true
+    remove_urls: false  # URL'leri koru (teknik içerik için gerekli)
+    language: "tr"  # Türkçe
+
+# Değerlendirme Ayarları
+evaluation:
+  metrics: ["loss", "perplexity", "accuracy"]
+
+  # Test kategorileri
+  test_categories:
+    - "coding"
+    - "reasoning"
+    - "turkish_grammar"
+    - "general_knowledge"
+    - "conversation"
+
+# Colab Ayarları
+colab:
+  auto_detect_gpu: true
+  mount_drive: true
+  drive_mount_path: "/content/drive/MyDrive/TagAI"
+
+  # GPU tiplerine göre otomatik ayarlar
+  gpu_configs:
+    T4:
+      batch_size: 2
+      gradient_accumulation_steps: 4
+      fp16: true
+      bf16: false
+      max_seq_length: 2048
+
+    L4:
+      batch_size: 4
+      gradient_accumulation_steps: 2
+      fp16: false
+      bf16: true
+      max_seq_length: 2048
+
+    A100:
+      batch_size: 8
+      gradient_accumulation_steps: 1
+      fp16: false
+      bf16: true
+      max_seq_length: 4096
+
+# Monitoring
+monitoring:
+  use_wandb: false  # Weights & Biases (opsiyonel)
+  project_name: "TagAI"
+  log_system_stats: true
+
+# Paths (Colab üzerinde otomatik ayarlanır)
+paths:
+  data_dir: "dataset"
+  model_dir: "models"
+  checkpoint_dir: "models/checkpoints"
+  output_dir: "models/output"
+  logs_dir: "logs"
